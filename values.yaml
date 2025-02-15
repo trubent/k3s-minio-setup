@@ -1,0 +1,19 @@
+replicaCount: 1
+persistence:
+  enabled: true
+  size: 10Gi
+
+credentialsSecret:
+  existingSecret: minio-secrets
+
+service:
+  type: ClusterIP
+
+ingress:
+  enabled: true
+  ingressClassName: "traefik"
+  hosts:
+    - host: ruben-minio.bablsoft.com
+      paths:
+        - path: /
+          pathType: Prefix
