@@ -1,1 +1,1 @@
-# k3s-minio-setup
+# K3s Minio Setup
