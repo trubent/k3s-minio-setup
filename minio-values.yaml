@@ -1,0 +1,16 @@
+mode: standalone
+replicas: 1
+resources:
+  requests:
+    memory: 512Mi
+    cpu: 250m
+  limits:
+    memory: 1Gi
+    cpu: 500m
+
+service:
+  type: ClusterIP
+  ports:
+    api: 9000
+    console: 9001
+

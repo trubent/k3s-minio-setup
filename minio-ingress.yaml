@@ -1,30 +1,19 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  annotations:
-    kubectl.kubernetes.io/last-applied-configuration: |
-      {"apiVersion":"networking.k8s.io/v1","kind":"Ingress","metadata":{"annotations":{"nginx.ingress.kubernetes.io/backend-protocol":"HTTP"},"name":"minio-ingress","namespace":"minio"},"spec":{"rules":[{"host":"ruben-minio.bablsoft.com","http":{"paths":[{"backend":{"service":{"name":"minio-console","port":{"number":9001}}},"path":"/","pathType":"Prefix"}]}}]}}
-    nginx.ingress.kubernetes.io/backend-protocol: HTTP
-  creationTimestamp: "2025-02-15T17:20:14Z"
-  generation: 1
-  name: minio-ingress
+  name: minio-console-ingress
   namespace: minio
-  resourceVersion: "152592"
-  uid: 0262cd7e-be1f-498e-a823-427f3713646e
+  annotations:
+    kubernetes.io/ingress.class: traefik
 spec:
-  ingressClassName: traefik
   rules:
   - host: ruben-minio.bablsoft.com
     http:
       paths:
-      - backend:
+      - path: /
+        pathType: Prefix
+        backend:
           service:
             name: minio-console
             port:
               number: 9001
-        path: /
-        pathType: Prefix
-status:
-  loadBalancer:
-    ingress:
-    - ip: 157.180.24.104
