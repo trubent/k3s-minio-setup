@@ -1,0 +1,67 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-backup
+  namespace: mysql
+spec:
+  schedule: "0 2 * * *"  # Runs daily at 2 AM
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: mysql-backup
+            image: bitnami/mysqldump:latest  # Lightweight image with MySQL & mc
+            imagePullPolicy: IfNotPresent
+            command:
+              - /bin/sh
+              - -c
+              - |
+                # Set variables
+                TIMESTAMP=$(date +%Y-%m-%d-%H%M)
+                BACKUP_FILE="/backup/mysql-dump-$TIMESTAMP.sql.gz"
+
+                # Create MySQL dump
+                mysqldump --ssl-mode=DISABLED -h mysql -u $MYSQL_USER -p$MYSQL_PASSWORD ruben_project | gzip > $BACKUP_FILE
+
+                # Set up MinIO client
+                mc alias set myminio http://10.43.52.94:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
+
+                # Upload backup to MinIO
+                mc cp "$BACKUP_FILE" myminio/ruben-project/
+
+                # Remove backups older than 5 days from MinIO
+                mc find myminio/ruben-project/ --name "mysql-dump-*.sql.gz" --older-than 120h --exec "mc rm {}"
+
+            env:
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: backup-secrets
+                  key: mysql_user
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: backup-secrets
+                  key: mysql_password
+            - name: MINIO_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backup-secrets
+                  key: minio_access_key
+            - name: MINIO_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: backup-secrets
+                  key: minio_secret_key
+            volumeMounts:
+            - mountPath: /backup
+              name: backup-storage
+
+          restartPolicy: Never
+          volumes:
+          - name: backup-storage
+            persistentVolumeClaim:
+              claimName: mysql-backup-pvc

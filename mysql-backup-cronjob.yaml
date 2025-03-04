@@ -1,0 +1,71 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mysql-backup
+  namespace: mysql
+spec:
+  schedule: "0 2 * * *" # Runs daily at 2 AM
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: mysql-backup
+              image: ubuntu:latest
+              imagePullPolicy: IfNotPresent
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  # Install required tools
+                  apt-get update && apt-get install -y curl mysql-client gzip && \
+                  curl -O https://dl.min.io/client/mc/release/linux-amd64/mc && \
+                  chmod +x mc && mv mc /usr/local/bin/
+
+                  # Ensure backup directory exists
+                  mkdir -p /backup && chmod 777 /backup
+
+                  # Set variables
+                  TIMESTAMP=$(date +%Y-%m-%d-%H%M)
+                  BACKUP_FILE="/backup/mysql-dump-$TIMESTAMP.sql.gz"
+
+                  # Create MySQL dump
+                  mysqldump --ssl-mode=DISABLED -h mysql -u $MYSQL_USER -p$MYSQL_PASSWORD ruben_project | gzip > $BACKUP_FILE
+
+                  # Upload backup to MinIO
+                  mc alias set myminio http://10.43.52.94:9000 $MINIO_ACCESS_KEY $MINIO_SECRET_KEY
+                  mc cp "$BACKUP_FILE" myminio/ruben-project/
+
+                  # Remove backups older than 5 days from MinIO
+                  mc find myminio/ruben-project/ --name "mysql-dump-*.sql.gz" --older-than 120h --exec "mc rm {}"
+              env:
+                - name: MYSQL_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: backup-secrets
+                      key: mysql_user
+                - name: MYSQL_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: backup-secrets
+                      key: mysql_password
+                - name: MINIO_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: backup-secrets
+                      key: minio_access_key
+                - name: MINIO_SECRET_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: backup-secrets
+                      key: minio_secret_key
+              volumeMounts:
+                - mountPath: /backup
+                  name: backup-storage
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: mysql-backup-pvc
