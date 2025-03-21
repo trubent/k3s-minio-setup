@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en-us"
+
+      xmlns:h="jakarta.faces.html"
+      xmlns:p="http://primefaces.org/ui"
+>
+
+<h:head>
+    <title>.:: Notebook ::.</title>
+    <meta content='text/html; charset=UTF-8' http-equiv="Content-Type" />
+</h:head>
+
+<h:body>
+    <style>
+        .legacy .ui-panel, .legacy.div.ui-state-hover {
+            margin: 10px;
+        }
+        .legacy .ui-dashboard-column {
+            width: 220px;
+        }
+        .ui-dashboard-active {
+            border-color: var(- -primary-color);
+            border-width: 3px !important;
+            border-style: dashed;
+        }
+        .ui-dashboard-hover {
+            border-color: #C2E085;
+            border-width: 3px !important;
+            border-style: solid;
+        }
+        body .ui-panel.chart-dashlet .ui-panel-content .ui-chart {
+            height: 250px;
+            max-height: 250px;
+        }
+    </style>
+
+    <h:form id="form">
+        <p:growl id="msgs" showDetail="true" skipDetailIfEqualsSummary="true">
+            <p:autoUpdate />
+        </p:growl>
+
+        <div class="card">
+            <h5 class="mt-0">Notebook</h5>
+            <p:dashboard id="responsive" model="#{dashboardView.responsiveModel}" responsive="true">
+
+                <p:panel id="bar" header="Add a Note" closable="false" styleClass="chart-dashlet" >
+                    <p:outputLabel value="Note" for="note"/>
+                    <p:inputText id="note" value="#{dashboardView.note}" required="true" maxlength="255" />
+                    <p:commandButton value="Save" action="#{dashboardView.save}" update=":form:msgs :form:responsive" />
+                </p:panel>
+
+                <p:panel id="stacked" header="All Notes" closable="false" styleClass="chart-dashlet" >
+                    <p:dataTable var="note" value="#{dashboardView.notes}" paginator="true" rows="10"
+                                 paginatorTemplate="{RowsPerPageDropdown} {FirstPageLink} {PreviousPageLink} {CurrentPageReport} {NextPageLink} {LastPageLink}"
+                                 rowsPerPageTemplate="5,10,15"
+                                 id="customerTable">
+                        <p:column headerText="Id" sortBy="#{note.id}">
+                            <h:outputText value="#{note.id}"/>
+                        </p:column>
+                        <p:column headerText="Note" sortBy="#{note.note}">
+                            <h:outputText value="#{note.note}"/>
+                        </p:column>
+                        <p:column headerText="Created" sortBy="#{note.created}">
+                            <h:outputText value="#{note.created}"/>
+                        </p:column>
+                    </p:dataTable>
+                </p:panel>
+
+            </p:dashboard>
+        </div>
+    </h:form>
+</h:body>
+</html>
