@@ -1,4 +1,4 @@
-name: Test Runner
+name: Build and Deploy Java App
 
 on:
   push:
@@ -7,9 +7,33 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-runner:
-    runs-on: self-hosted  # This makes it run on your k3s node
+  build-and-deploy:
+    runs-on: self-hosted
 
     steps:
-      - name: Check Runner
-        run: echo "Runner is working!"
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set Up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Build JAR File
+        run: |
+          cd your-java-app-folder
+          ./mvnw clean package
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin
+
+      - name: Build and Push Docker Image
+        run: |
+          docker build -t ghcr.io/YOUR_GITHUB_USERNAME/YOUR_REPO:latest .
+          docker push ghcr.io/YOUR_GITHUB_USERNAME/YOUR_REPO:latest
+
+      - name: Deploy with Helm
+        run: |
+          helm upgrade --install your-app ./helm-chart --namespace your-namespace --set image.repository=ghcr.io/YOUR_GITHUB_USERNAME/YOUR_REPO,image.tag=latest
+

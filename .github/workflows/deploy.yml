@@ -1,0 +1,52 @@
+name: Build and Deploy Java App
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-deploy:
+    runs-on: self-hosted
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up JDK
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Build Java App
+      run: ./gradlew build
+
+    - name: Log in to GitHub Container Registry
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+    - name: Build and Push Docker Image
+      run: |
+        docker build -t ghcr.io/${{ github.repository_owner }}/ruben-notes:latest .
+        docker push ghcr.io/${{ github.repository_owner }}/ruben-notes:latest
+
+    - name: Helm Upgrade and Install
+      run: |
+        helm upgrade --install ruben-notes ./helm-chart \
+          --set image.repository=ghcr.io/${{ github.repository_owner }}/ruben-notes \
+          --set image.tag=latest \
+          --set env.DB_HOST="mysql.db.svc.cluster.local" \
+          --set env.DB_NAME="ruben_notes" \
+          --set env.DB_USER="${{ secrets.DB_USER }}" \
+          --set env.DB_PASS="${{ secrets.DB_PASS }}"
+
+      - name: Set up KUBECONFIG
+     run: |
+       echo "${{ secrets.KUBECONFIG_DATA }}" > kubeconfig
+
+   - name: Install Helm
+     uses: azure/setup-helm@v3
+     with:
+       version: v3.13.3
+
+   - name: Helm Deploy
+     run: |
+       helm upgrade --install ruben-notes ./helm-chart --kubeconfig kubeconfig
+
