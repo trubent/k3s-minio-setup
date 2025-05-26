@@ -3,7 +3,7 @@ spring:
     virtual:
       enabled: true
   datasource:
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:notes}?useUnicode=yes&useSSL=false&characterEncoding=UTF-8
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:notes}?useUnicode=yes&allowPublicKeyRetrieval=true&useSSL=false&characterEncoding=UTF-8
     username: ${DB_USER:root}
     password: ${DB_PASS:root}
     hikari:
